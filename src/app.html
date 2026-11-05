@@ -1,0 +1,790 @@
+<title>Cutting Room</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gloock&family=IBM+Plex+Sans+Condensed:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: cutting-room workbench — project rail on the left, a pattern-card work surface on the right. */
+:root {
+  --bg: #eef0f2; --panel: #ffffff; --card: #e8dcbf; --card-edge: #cdbb92;
+  --ink: #1b2430; --muted: #5d6673; --line: #d5d9df; --accent: #1f4f7a; --accent-ink: #ffffff;
+  --tape: #f2c230; --tape-ink: #2a2100; --mark: #a3291e; --grain: #1f5a9e;
+  --ok: #2f7d4a; --warn: #a86a00; --bad: #b3261e; --ok-bg: #e6f2ea; --warn-bg: #fbf1dc; --bad-bg: #f9e4e1;
+  --display: "Gloock", "Georgia", serif;
+  --body: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #14181d; --panel: #1c2229; --card: #2e2a22; --card-edge: #4a4233;
+  --ink: #e6e9ed; --muted: #9aa3ae; --line: #2f3740; --accent: #7fb3e6; --accent-ink: #0d1520;
+  --tape: #f2c230; --tape-ink: #2a2100; --mark: #ff8a7a; --grain: #8cc0ff;
+  --ok: #6fcf8f; --warn: #f0b44c; --bad: #ff8a7a; --ok-bg: #1d3326; --warn-bg: #3a2e14; --bad-bg: #3d1f1b; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #14181d; --panel: #1c2229; --card: #2e2a22; --card-edge: #4a4233;
+  --ink: #e6e9ed; --muted: #9aa3ae; --line: #2f3740; --accent: #7fb3e6; --accent-ink: #0d1520;
+  --tape: #f2c230; --tape-ink: #2a2100; --mark: #ff8a7a; --grain: #8cc0ff;
+  --ok: #6fcf8f; --warn: #f0b44c; --bad: #ff8a7a; --ok-bg: #1d3326; --warn-bg: #3a2e14; --bad-bg: #3d1f1b; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--body); }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.app { display: grid; grid-template-columns: 260px minmax(0, 1fr); min-height: 100%; }
+.rail { background: var(--panel); border-right: 1px solid var(--line); padding-block: 18px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px; display: flex; flex-direction: column; gap: 16px; }
+.brand { display: flex; align-items: baseline; gap: 8px; }
+.brand h1 { font: 26px/1 var(--display); margin: 0; letter-spacing: .2px; }
+.brand span { font: 11px var(--mono); color: var(--muted); }
+.tape { height: 10px; border-radius: 2px; background: repeating-linear-gradient(90deg, var(--tape-ink) 0 1px, transparent 1px 10px), var(--tape); opacity: .9; }
+.rail h2 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 6px; }
+.folder { display: grid; gap: 2px; }
+.folder > summary { list-style: none; cursor: pointer; font-weight: 600; padding: 4px 6px; border-radius: 4px; display: flex; justify-content: space-between; }
+.folder > summary::-webkit-details-marker { display: none; }
+.folder > summary .n { font: 12px var(--mono); color: var(--muted); }
+.proj { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 6px 8px 6px 18px; border-radius: 4px; cursor: pointer; }
+.proj small { display: block; color: var(--muted); font-size: 12px; }
+.proj:hover { background: var(--bg); }
+.proj[aria-current="true"] { background: var(--tape); color: var(--tape-ink); }
+.proj[aria-current="true"] small { color: var(--tape-ink); }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: var(--r); padding: 7px 12px; cursor: pointer; font-weight: 500; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: none; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn.sm { padding: 4px 8px; font-size: 13px; }
+.btn.danger { background: var(--bad); border-color: var(--bad); color: var(--panel); }
+.vlist { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 4px; }
+.vlist td { padding: 6px 8px; vertical-align: middle; }
+.vlist tr:last-child td { border-bottom: 0; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.main { min-width: 0; padding-block: 20px 40px; padding-left: 24px; padding-right: max(24px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 16px; }
+.head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; }
+.head h2 { font: 32px/1.1 var(--display); margin: 0; text-wrap: balance; }
+.head .sub { color: var(--muted); }
+.versions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.vchip { font: 13px var(--mono); border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.vchip[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.vchip .lock { margin-left: 4px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tab { background: none; border: 0; padding: 8px 14px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 500; white-space: nowrap; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--tape); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.grid2 > * { min-width: 0; }
+.dgrid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.dgrid > * { min-width: 0; }
+@media (max-width: 1000px) { .dgrid { grid-template-columns: minmax(0, 1fr); } }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 14px; }
+legend { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin-bottom: 10px; padding: 0; }
+.field { display: grid; gap: 3px; }
+.field label { font-size: 13px; color: var(--muted); }
+.field label b { color: var(--bad); font-weight: 600; }
+.field input, .field select, textarea { width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 6px 8px; }
+.field input[type=number] { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.field.check { grid-template-columns: auto 1fr; align-items: center; gap: 6px; padding-top: 18px; }
+.field.check input { width: auto; }
+input:disabled, select:disabled { opacity: .7; }
+.unit { font: 11px var(--mono); color: var(--muted); }
+.banner { border-radius: var(--r); padding: 10px 14px; border: 1px solid; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.banner.warn { background: var(--warn-bg); border-color: var(--warn); }
+.banner.bad { background: var(--bad-bg); border-color: var(--bad); }
+.banner.ok { background: var(--ok-bg); border-color: var(--ok); }
+.issues { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.issue { display: grid; grid-template-columns: 6px 1fr auto; gap: 10px; align-items: start; }
+.issue::before { content: ""; align-self: stretch; border-radius: 3px; background: var(--warn); }
+.issue.block::before { background: var(--bad); }
+.issue p { margin: 0; } .issue .q { color: var(--muted); font-size: 14px; }
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: var(--r); overflow: auto; max-height: 78vh; position: relative; }
+.card svg.pattern { display: block; width: 100%; height: auto; }
+.card.zoom svg.pattern { width: 220%; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.checks { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.checks li { display: grid; grid-template-columns: 52px 1fr; gap: 8px; align-items: baseline; }
+.pill { font: 600 11px var(--mono); border-radius: 999px; padding: 1px 8px; text-align: center; }
+.pill.ok { background: var(--ok-bg); color: var(--ok); } .pill.bad { background: var(--bad-bg); color: var(--bad); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.checks small { color: var(--muted); font-family: var(--mono); font-size: 12px; display: block; }
+h3 { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .12em; color: var(--muted); margin: 0 0 10px; }
+.stack { display: grid; gap: 16px; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-variant-numeric: tabular-nums; margin: 0; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--mono); text-align: right; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 11px var(--body); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+td.num { font-family: var(--mono); text-align: right; }
+.scroll { overflow-x: auto; }
+.note { white-space: pre-wrap; max-width: 68ch; margin: 0; }
+ul.plain { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.exp { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.exp .opt { border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 8px; align-content: start; background: var(--panel); }
+.exp .opt b { font-size: 16px; } .exp .opt span { color: var(--muted); font-size: 13px; }
+.empty { display: grid; place-items: center; text-align: center; gap: 10px; padding: 60px 16px; color: var(--muted); }
+.empty h2 { font: 30px var(--display); color: var(--ink); margin: 0; }
+.toast { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 14px; border-radius: var(--r); max-width: 360px; z-index: 20; }
+.sync { font: 12px var(--mono); color: var(--muted); }
+.modal { position: fixed; inset: 0; background: rgb(0 0 0 / .45); display: grid; place-items: center; z-index: 30; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.modal .panel { width: min(520px, 100%); display: grid; gap: 12px; }
+.fault { display: grid; grid-template-columns: auto 1fr; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.fault:last-child { border-bottom: 0; }
+.fault .deltas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.fault .deltas label { font: 12px var(--mono); color: var(--muted); display: flex; gap: 4px; align-items: center; }
+.fault .deltas input { width: 64px; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 2px 4px; font-family: var(--mono); }
+.diag { border-left: 3px solid var(--accent); padding-left: 10px; display: grid; gap: 6px; }
+.deltas { display: flex; flex-wrap: wrap; gap: 8px; }
+.deltas label { font: 12px var(--mono); color: var(--muted); display: flex; gap: 4px; align-items: center; }
+.deltas input { width: 64px; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 2px 4px; font-family: var(--mono); }
+.gstep { display: grid; grid-template-columns: 24px 1fr; gap: 10px; align-items: start; }
+.gstep > div { display: grid; gap: 6px; min-width: 0; }
+.gnum { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); color: var(--bg); font: 600 12px/24px var(--mono); text-align: center; }
+.gchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.glist { display: grid; gap: 4px; }
+.gchip { text-align: left; border: 1px solid var(--line); background: var(--bg); border-radius: 4px; padding: 6px 10px; cursor: pointer; }
+.gchips .gchip { border-radius: 999px; padding: 4px 12px; }
+.gchip:hover { border-color: var(--accent); }
+.gchip[aria-pressed="true"] { background: var(--tape); color: var(--tape-ink); border-color: var(--tape); }
+.muted { color: var(--muted); }
+.mono { font-family: var(--mono); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.mlayout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 16px; align-items: start; }
+.mlayout > * { min-width: 0; }
+.vpanel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); display: grid; gap: 8px; }
+.vpanel h3 { margin: 0; }
+.v3d { position: relative; height: min(72vh, 680px); border-radius: var(--r); overflow: hidden;
+  background: radial-gradient(120% 80% at 50% 30%, var(--panel), var(--bg)); border: 1px solid var(--line); touch-action: none; }
+.v3d canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+.v3d canvas:active { cursor: grabbing; }
+.v3d-views { position: absolute; left: 8px; top: 8px; display: flex; gap: 4px; z-index: 1; }
+.v3d-msg { position: absolute; left: 8px; right: 8px; bottom: 8px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 10px; font-size: 13px; color: var(--muted); }
+.vfacts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-size: 12px; color: var(--muted); }
+.vfacts b { display: block; font: 500 14px var(--mono); color: var(--ink); }
+@media (max-width: 1100px) { .mlayout { grid-template-columns: minmax(0, 1fr); } .vpanel { position: static; order: -1; } .v3d { height: 440px; } }
+@media (max-width: 820px) {
+  .app { grid-template-columns: 1fr; }
+  .rail { border-right: 0; border-bottom: 1px solid var(--line); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .main { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="app">
+  <aside class="rail" aria-label="Projects">
+    <div class="brand"><h1>Cutting Room</h1><span id="engineTag"></span></div>
+    <div class="tape" aria-hidden="true"></div>
+    <button class="btn primary" id="newProject">New project</button>
+    <nav id="projectList" aria-label="Project folders"><p class="muted">Loading projects…</p></nav>
+    <div style="margin-top:auto; display:grid; gap:8px">
+      <button class="btn ghost" id="houseBtn">House calibration</button>
+      <span class="sync" id="sync"></span>
+    </div>
+  </aside>
+  <main class="main" id="main"></main>
+</div>
+<div id="modalRoot"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/*ENGINE*/
+</script>
+<script>
+/*EXPORTS*/
+</script>
+<script>
+/*VIEWER*/
+</script>
+<script>
+/*GUIDE*/
+</script>
+<script>
+(function () {
+  "use strict";
+  const C = window.Cutter, X = window.CutterExport;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const r1 = (v) => (Math.round(v * 10) / 10);
+  const vid = (n) => "v" + String(n).padStart(3, "0");
+  $("#engineTag").textContent = (window.__BUILD__ ? "v" + window.__BUILD__.version + " · " : "") + "engine " + C.ENGINE_VERSION;
+  if (window.__PLATFORM__ === "local") { const b = document.createElement("a"); b.className = "btn ghost"; b.href = "api/export"; b.textContent = "Download backup"; b.style.textAlign = "center"; b.style.textDecoration = "none"; $("#houseBtn").after(b); }
+
+  // ---------- form schema ----------
+  const SCHEMA = [
+    { group: "measurements", legend: "Measurements (mm)", fields: [
+      ["waist", "Waist (worn height)", "num", true], ["seat", "Seat", "num", true], ["outside_leg", "Outside leg (in shoes)", "num", true],
+      ["inside_leg", "Inside leg", "num", true], ["thigh", "Thigh", "num", true], ["knee", "Knee", "num", true], ["bottom", "Bottom (finished)", "num", true],
+      ["body_rise", "Seated body rise", "num"], ["front_rise", "Front rise (through legs)", "num"], ["back_rise", "Back rise (through legs)", "num"], ["calf", "Calf", "num"],
+      ["waist_position", "Waist taken at", ["natural_waist", "mid"]],
+    ] },
+    { group: "figuration", legend: "Figuration", fields: [
+      ["seat", "Seat", ["normal", "flat", "prominent"]], ["stomach", "Stomach", ["normal", "flat", "prominent", "corpulent"]],
+      ["stance", "Stance", ["normal", "erect", "stooping"]], ["hips", "Hips", ["level", "left_low", "right_low"]], ["hip_mm", "Low hip by (mm)", "num"],
+      ["legs", "Legs", ["straight", "bow", "knock"]], ["thighs", "Thighs", ["normal", "heavy"]],
+    ] },
+    { group: "style", legend: "Style", fields: [
+      ["rise", "Rise", ["natural_waist", "mid"]], ["front", "Front", ["flat", "single_forward_pleat", "double_forward_pleat", "reverse_pleat"]],
+      ["waistband", "Waistband", ["straight", "side_adjusters", "fishtail_braces", "belt_loops"]], ["side_pockets", "Side pockets", ["on_seam", "cross", "none"]],
+      ["hip_pockets", "Hip pockets (jetted)", ["0", "1", "2"]], ["hip_pocket_button", "Hip pocket buttons", "check"],
+      ["bottoms", "Bottoms", ["plain", "turn_up"]], ["turnup_depth", "Turn-up depth (mm)", "num"],
+      ["break", "Break", ["none", "slight", "full"]], ["leg_line", "Leg line", ["slim", "classic", "full"]],
+    ] },
+    { group: "cloth", legend: "Cloth", fields: [
+      ["type", "Cloth", "text"], ["weight", "Weight (g/m)", "num"], ["stretch", "Stretch (%)", "num"],
+      ["shrinkage_length", "Shrinkage, length (%)", "num"], ["shrinkage_width", "Shrinkage, width (%)", "num"],
+    ] },
+  ];
+  const blankInput = () => ({
+    measurements: { waist_position: "natural_waist" },
+    figuration: { seat: "normal", stomach: "normal", stance: "normal", hips: "level", legs: "straight", thighs: "normal" },
+    style: { rise: "natural_waist", front: "single_forward_pleat", waistband: "side_adjusters", side_pockets: "on_seam", hip_pockets: "1", hip_pocket_button: true, bottoms: "plain", break: "slight", leg_line: "classic" },
+    cloth: { type: "", weight: null, stretch: 0, shrinkage_length: 0, shrinkage_width: 0 },
+    adjustments: {}, confirmed: [],
+  });
+  const pretty = (s) => String(s).replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
+
+  // ---------- state ----------
+  const S = { db: null, downloads: null, projects: [], versions: [], house: {}, pid: null, vnum: null, tab: "measures", work: null, spec: null, local: false, zoom: false, fitting: null, unsubV: null, loaded: false };
+  const sel = () => S.projects.find((p) => p.id === S.pid) || null;
+  const curV = () => S.versions.find((v) => v.n === S.vnum) || null;
+
+  function toast(msg, ms = 3200) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => (t.hidden = true), ms); }
+  function sync(msg) { $("#sync").textContent = msg; }
+
+  // one write at a time per document
+  const chains = {};
+  function write(path, fn) {
+    if (!S.db) return Promise.resolve();
+    chains[path] = (chains[path] || Promise.resolve()).then(fn).then(() => sync("Saved " + new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })))
+      .catch((e) => { sync("Not saved"); toast(e && e.code === "quota_exceeded" ? "Storage is full. Delete old projects to save more." : "Couldn't save: " + (e && (e.message || e.code))); });
+    return chains[path];
+  }
+  // local fallback store (when db is unavailable)
+  const LS = { projects: [], versions: {} };
+
+  // ---------- boot ----------
+  async function boot() {
+    renderMain();
+    const timer = setTimeout(() => { if (!S.loaded) { $("#projectList").innerHTML = '<p class="muted">Projects can’t be reached yet. Check your connection; this page keeps trying.</p>'; } }, 10000);
+    const use = (n) => { try { return window.claude && window.claude.use ? Promise.resolve(window.claude.use(n)).catch(() => null) : Promise.resolve(null); } catch (e) { return Promise.resolve(null); } };
+    const [db, downloads] = await Promise.all(["db", "downloads"].map(use));
+    S.db = db; S.downloads = downloads;
+    if (!db) {
+      clearTimeout(timer); S.local = true; S.loaded = true;
+      sync("Not saving: projects store unavailable in this view");
+      renderRail(); renderMain(); return;
+    }
+    db.collection("projects").onSnapshot((snap) => {
+      S.loaded = true; if (!snap.metadata.fromCache) clearTimeout(timer);
+      S.projects = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updated || "").localeCompare(a.updated || ""));
+      if (S.pid && !sel()) { S.pid = null; S.versions = []; }
+      renderRail(); if (!S.pid) renderMain();
+    }, (e) => { clearTimeout(timer); $("#projectList").innerHTML = `<p class="muted">Projects couldn’t load (${esc(e.code)}).</p>`; });
+    db.doc("settings/house").onSnapshot((d) => { S.house = d.exists ? d.data().values || {} : {}; if (S.work) recompute(); }, () => {});
+  }
+
+  function openProject(pid) {
+    if (S.pid === pid) return;
+    S.pid = pid; S.vnum = null; S.versions = []; S.work = null; S.spec = null; S.fitting = null; S.tab = "measures";
+    if (S.unsubV) S.unsubV();
+    renderRail(); renderMain();
+    if (S.local) { S.versions = LS.versions[pid] || []; pickLatest(); return; }
+    S.unsubV = S.db.collection(`projects/${pid}/versions`).onSnapshot((snap) => {
+      const prevN = S.vnum;
+      S.versions = snap.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => a.n - b.n);
+      if (S.pendingSelect && S.versions.some((v) => v.n === S.pendingSelect)) { const n = S.pendingSelect; S.pendingSelect = null; selectVersion(n); return; }
+      if (prevN == null || !S.versions.some((v) => v.n === prevN)) { pickLatest(); return; }
+      renderHead();
+      const v = curV(); if (v && !!v.locked !== !!(S.work && S.work._locked)) selectVersion(v.n);
+    }, (e) => toast("Versions couldn’t load: " + e.code));
+  }
+  // version numbers only go up, so a deleted number is never reused (fitting records point at version numbers)
+  const nextN = () => Math.max(0, ...S.versions.map((v) => v.n), Number(sel()?.maxN) || 0) + 1;
+  function pickLatest() { const v = S.versions[S.versions.length - 1]; selectVersion(v ? v.n : null); }
+  function selectVersion(n) {
+    S.vnum = n; const v = curV(); S.fitting = null;
+    S.work = v ? structuredClone(v.input) : null; S.lastGood = null;
+    if (S.work) S.work._locked = !!v.locked;
+    recompute(); renderMain();
+  }
+  function houseFor(v) { return v && v.locked && v.house ? v.house : S.house; }
+  function recompute() {
+    if (!S.work) { S.spec = null; return; }
+    const input = structuredClone(S.work); delete input._locked;
+    try { S.spec = C.draft(input, houseFor(curV())); } catch (e) { console.error(e); S.spec = { status: "error", message: String(e && e.message || e) }; }
+  }
+
+  // ---------- rail ----------
+  function renderRail() {
+    const el = $("#projectList");
+    if (!S.loaded) return;
+    if (!S.projects.length) { el.innerHTML = '<p class="muted">No projects yet. Start one with <b>New project</b>.</p>'; return; }
+    const groups = {};
+    S.projects.forEach((p) => { const f = p.folder || "Unfiled"; (groups[f] = groups[f] || []).push(p); });
+    el.innerHTML = Object.keys(groups).sort().map((f) => `
+      <details class="folder" open><summary>${esc(f)}<span class="n">${groups[f].length}</span></summary>
+      ${groups[f].map((p) => `<button class="proj" data-pid="${esc(p.id)}" aria-current="${p.id === S.pid}">${esc(p.name)}<small>${esc(p.client || "")}${p.latest ? " · v" + p.latest : ""}</small></button>`).join("")}
+      </details>`).join("");
+  }
+  $("#projectList").addEventListener("click", (e) => { const b = e.target.closest(".proj"); if (b) openProject(b.dataset.pid); });
+
+  // ---------- main ----------
+  function renderMain() {
+    const m = $("#main");
+    const p = sel();
+    if (!p) {
+      m.innerHTML = `<div class="empty"><h2>Draft a pair of trousers</h2>
+        <p style="max-width:52ch">Each project is a folder for one client’s trousers. Enter measures, figuration and style; the draft, checks and print-ready pattern follow. Fitting rounds create new versions, so every earlier draft stays as it was cut.</p>
+        <button class="btn primary" data-act="new">New project</button>
+        ${S.local ? '<p class="banner warn">The project store isn’t available in this view, so work here won’t be saved. Open the page in Claude while signed in to keep projects.</p>' : ""}</div>`;
+      return;
+    }
+    m.innerHTML = `<div class="head" id="head"></div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div id="tabBody" class="stack"></div>`;
+    renderHead(); renderTabs(); renderTab();
+  }
+  function renderHead() {
+    const p = sel(); const h = $("#head"); if (!h || !p) return;
+    const v = curV();
+    h.innerHTML = `<div><h2>${esc(p.name)}</h2><div class="sub">${esc(p.client || "")}${p.folder ? " · " + esc(p.folder) : ""}${p.notes ? " · " + esc(p.notes) : ""}</div></div>
+      <div class="versions" aria-label="Versions">
+        ${S.versions.map((x) => `<button class="vchip" data-v="${x.n}" aria-current="${x.n === S.vnum}" title="${esc(x.label || "")}">v${x.n}${x.locked ? '<span class="lock" aria-label="fitted">·f</span>' : ""}</button>`).join("")}
+        ${S.versions.length ? `<button class="btn sm ghost" data-act="dup">New version from v${v ? v.n : ""}</button>` : ""}
+        <button class="btn sm ghost" data-act="editProject">Edit project</button>
+      </div>`;
+  }
+  const TABS = [["measures", "Measures"], ["draft", "Draft"], ["fitting", "Fitting"], ["export", "Print & export"], ["spec", "Spec"]];
+  function renderTabs() {
+    $("#tabs").innerHTML = TABS.map(([k, l]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${l}${k === "draft" && S.spec && S.spec.status === "needs_clarification" ? ' <span class="pill bad">!</span>' : ""}</button>`).join("");
+  }
+  function renderTab() {
+    const b = $("#tabBody"); if (!b) return;
+    if (!S.versions.length) { b.innerHTML = `<div class="panel empty"><p>No versions yet.</p><button class="btn primary" data-act="firstVersion">Start v1</button></div>`; return; }
+    renderTabs();
+    ({ measures: tabMeasures, draft: tabDraft, fitting: tabFitting, export: tabExport, spec: tabSpec })[S.tab](b);
+  }
+
+  // ---------- Measures ----------
+  function tabMeasures(b) {
+    const v = curV(); const locked = !!(v && v.locked); const w = S.work;
+    const adj = Object.entries(w.adjustments || {}).filter(([, x]) => x);
+    b.innerHTML = `
+      ${locked ? `<div class="banner warn"><span>v${v.n} has a recorded fitting, so it is kept as cut. Make changes in a new version.</span><button class="btn sm" data-act="dup">New version from v${v.n}</button></div>` : ""}
+      <div class="mlayout"><div class="stack">
+      <form id="mform" class="stack" autocomplete="off">
+        ${SCHEMA.map((g) => `<div class="panel">${fieldsetHTML(g, w, locked)}</div>`).join("")}
+      </form>
+      <div class="panel" id="adjPanel">
+        <h3>Fitting adjustments carried in this version</h3>
+        ${adj.length ? `<table><thead><tr><th>Change</th><th class="num">Total</th><th></th></tr></thead><tbody>
+          ${adj.map(([k, x]) => `<tr><td>${esc(C.ADJ_PARAMS[k]?.label || k)}</td><td class="num">${x > 0 ? "+" : ""}${r1(x)} ${esc(C.ADJ_PARAMS[k]?.unit || "")}</td><td>${locked ? "" : `<button class="btn sm ghost" data-act="clearAdj" data-k="${esc(k)}">Remove</button>`}</td></tr>`).join("")}
+        </tbody></table>` : `<p class="muted">None. Adjustments arrive from fitting rounds and add to the base draft.</p>`}
+      </div>
+      <div id="liveIssues"></div>
+      </div>
+      <aside class="vpanel" aria-label="3D preview"><div class="row" style="justify-content:space-between"><h3>3D preview</h3><span class="muted" style="font-size:12px">Drag to turn · double-click to reset</span></div>
+        <div id="v3dHost"></div><div class="vfacts" id="vfacts"></div></aside>
+      </div>`;
+    renderLiveIssues();
+    mountViewer();
+  }
+  function fieldsetHTML(g, w, locked) {
+    const obj = w[g.group] || {};
+    return `<fieldset data-group="${g.group}"><legend>${g.legend}</legend>${g.fields.map(([k, label, type, req]) => {
+      const id = `f_${g.group}_${k}`; const val = obj[k];
+      if (type === "check") return `<div class="field check"><input type="checkbox" id="${id}" data-k="${k}" ${val ? "checked" : ""} ${locked ? "disabled" : ""}><label for="${id}">${label}</label></div>`;
+      if (Array.isArray(type)) return `<div class="field"><label for="${id}">${label}</label><select id="${id}" data-k="${k}" ${locked ? "disabled" : ""}>${type.map((o) => `<option value="${o}" ${String(val) === o ? "selected" : ""}>${pretty(o)}</option>`).join("")}</select></div>`;
+      return `<div class="field"><label for="${id}">${label}${req ? " <b>*</b>" : ""}</label><input id="${id}" data-k="${k}" ${type === "num" ? 'type="number" inputmode="decimal" step="any" min="0"' : 'type="text"'} value="${val ?? ""}" ${locked ? "disabled" : ""}></div>`;
+    }).join("")}</fieldset>`;
+  }
+  let saveT = null;
+  document.addEventListener("input", (e) => {
+    const f = e.target.closest("#mform [data-k]"); if (!f) return;
+    const g = f.closest("fieldset").dataset.group; const k = f.dataset.k;
+    let v = f.type === "checkbox" ? f.checked : f.value;
+    if (f.type === "number") v = f.value === "" ? null : Number(f.value);
+    S.work[g] = S.work[g] || {}; S.work[g][k] = v;
+    recompute(); renderLiveIssues(); renderTabs(); refreshViewer();
+    clearTimeout(saveT); sync("Editing…"); saveT = setTimeout(saveWork, 700);
+  });
+  function mountViewer() {
+    const host = $("#v3dHost"); if (!host) return;
+    if (!S.viewer) { try { S.viewer = window.Trouser3D.create(host); } catch (e) { console.error(e); host.innerHTML = '<p class="muted">3D preview unavailable.</p>'; return; } }
+    else S.viewer.attach(host);
+    refreshViewer();
+  }
+  let vT = 0;
+  function refreshViewer() {
+    if (!S.viewer || !$("#v3dHost")) return;
+    cancelAnimationFrame(vT);
+    vT = requestAnimationFrame(() => {
+      const s = S.spec; const ok = s && s.status === "ok";
+      if (ok) S.lastGood = { spec: s, input: structuredClone(S.work) };
+      const lg = S.lastGood;
+      const note = ok ? "" : (lg ? "Showing the last complete draft. " : "") + (s && s.status === "needs_clarification" ? `${s.questions.length} question${s.questions.length > 1 ? "s" : ""} to resolve below.` : "Enter the required measures to see the trousers.");
+      try { S.viewer.update(lg ? lg.spec : null, lg ? lg.input : S.work, note); } catch (e) { console.error(e); }
+      const f = $("#vfacts");
+      if (f) f.innerHTML = lg ? [["Seat ease", lg.spec.params.seat_ease + " mm"], ["Knee", lg.spec.params.finished_knee + " mm"], ["Bottom", (lg.input.measurements.bottom || "") + " mm"], ["Rise", lg.spec.params.body_rise + " mm"], ["Seat angle", lg.spec.params.seat_angle_deg + "°"], ["Back drop", lg.spec.params.back_hem_drop + " mm"]].map(([k, v]) => `<div>${k}<b>${esc(v)}</b></div>`).join("") : "";
+    });
+  }
+  function renderLiveIssues() {
+    const el = $("#liveIssues"); if (!el || !S.spec) return;
+    const iss = S.spec.issues || [];
+    if (S.spec.status === "error") { el.innerHTML = `<div class="banner bad">The draft failed: ${esc(S.spec.message)}</div>`; return; }
+    el.innerHTML = iss.length ? `<div class="panel"><h3>Checks on the measures</h3>${issuesHTML(iss)}</div>` : `<div class="banner ok">Measures pass every check. The draft is ready.</div>`;
+  }
+  function issuesHTML(iss) {
+    const conf = new Set(S.work.confirmed || []); const locked = S.work._locked;
+    return `<ol class="issues">${iss.map((i) => `<li class="issue ${i.severity}"><div><p>${esc(i.text)}</p><p class="q">${esc(i.question)}</p></div>
+      <div>${i.severity === "block" && !String(i.id).startsWith("missing_") && !locked ? `<label class="row" style="font-size:13px"><input type="checkbox" data-act="confirm" data-id="${esc(i.id)}" ${conf.has(i.id) ? "checked" : ""}> Confirmed as measured</label>` : `<span class="pill ${i.severity === "block" ? "bad" : "warn"}">${i.severity === "block" ? "stop" : "note"}</span>`}</div></li>`).join("")}</ol>`;
+  }
+  document.addEventListener("change", (e) => {
+    const c = e.target.closest('[data-act="confirm"]'); if (!c) return;
+    const set = new Set(S.work.confirmed || []); c.checked ? set.add(c.dataset.id) : set.delete(c.dataset.id);
+    S.work.confirmed = [...set]; recompute(); saveWork(); renderTabs(); refreshViewer(); if (S.tab === "draft") renderTab();
+  });
+  function saveWork() {
+    const v = curV(); if (!v || v.locked || !S.work) return;
+    const input = structuredClone(S.work); delete input._locked;
+    const summary = summarize(S.spec);
+    if (S.local) { v.input = input; v.summary = summary; sync("Not saving"); return; }
+    write(`projects/${S.pid}/versions/${v.id}`, () => S.db.doc(`projects/${S.pid}/versions/${v.id}`).update({ input, summary, updated: new Date().toISOString(), engine: C.ENGINE_VERSION }));
+    write(`projects/${S.pid}`, () => S.db.doc(`projects/${S.pid}`).update({ updated: new Date().toISOString() }));
+  }
+  function summarize(spec) {
+    if (!spec) return null;
+    if (spec.status !== "ok") return { status: spec.status, open: (spec.questions || []).length };
+    return { status: "ok", failed: spec.checks.filter((c) => !c.pass).map((c) => c.name), crotch: spec.measures.crotch, seat_angle: spec.params.seat_angle_deg };
+  }
+
+  // ---------- Draft ----------
+  const PREVIEW_COLORS = { CUT: "var(--ink)", NET: "var(--muted)", GRAIN: "var(--grain)", MARKS: "var(--mark)", TEXT: "var(--ink)" };
+  function meta() { const p = sel(), v = curV(); return { project: `${p.name}${p.client ? " / " + p.client : ""}`, version: `v${v.n}${v.label ? " " + v.label : ""}`, date: new Date().toISOString().slice(0, 10) }; }
+  function tabDraft(b) {
+    const s = S.spec;
+    if (!s || s.status === "error") { b.innerHTML = `<div class="banner bad">The draft could not be computed. ${esc(s && s.message || "")}</div>`; return; }
+    if (s.status === "needs_clarification") {
+      b.innerHTML = `<div class="panel stack"><div class="banner bad"><span><b>Needs clarification.</b> Drafting stops until these are answered on the Measures tab, or confirmed as measured.</span><button class="btn sm" data-tab="measures">Go to measures</button></div>${issuesHTML(s.issues)}</div>`;
+      return;
+    }
+    const failed = s.checks.filter((c) => !c.pass);
+    b.innerHTML = `
+      ${failed.length ? `<div class="banner warn"><span>${failed.length} check${failed.length > 1 ? "s" : ""} to review before cutting: ${failed.map((c) => esc(c.name)).join("; ")}.</span></div>` : `<div class="banner ok">All drafting checks pass.</div>`}
+      <div class="dgrid">
+        <div>
+          <div class="toolbar"><span class="muted">Solid: cut line with inlays. Dashed: net stitch line. Red: notches, darts, pleats, pockets. Blue: crease and grain.</span>
+            <button class="btn sm" data-act="zoom">${S.zoom ? "Fit to width" : "Zoom in"}</button></div>
+          <div class="card ${S.zoom ? "zoom" : ""}" id="pcard">${X.toSVG(s, meta(), { preview: true, colors: PREVIEW_COLORS, width: 900 })}</div>
+        </div>
+        <div class="stack">
+          <div class="panel"><h3>Checks</h3><ul class="checks">${s.checks.map((c) => `<li><span class="pill ${c.pass ? "ok" : "bad"}">${c.pass ? "PASS" : "CHECK"}</span><div>${esc(c.name)}<small>${esc(c.detail)}</small></div></li>`).join("")}</ul></div>
+          <div class="panel"><h3>Draft values</h3><dl class="kv">
+            ${[["Body rise", s.params.body_rise, "mm"], ["Seat ease", s.params.seat_ease, "mm"], ["Waist ease", s.params.waist_ease, "mm"], ["Seat angle", s.params.seat_angle_deg, "°"], ["Front fork", s.params.front_fork, "mm"], ["Back fork", s.params.back_fork, "mm"], ["Back fork drop", s.params.back_fork_drop, "mm"], ["Back waist raise", s.params.back_raise, "mm"], ["Finished knee", s.params.finished_knee, "mm"], ["Back hem drop", s.params.back_hem_drop, "mm"], ["Front seam", s.measures.front_seam, "mm"], ["Back seam", s.measures.back_seam, "mm"]].map(([k, v, u]) => `<dt>${k}</dt><dd>${r1(v)} ${u}</dd>`).join("")}
+          </dl></div>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="panel"><h3>Cutter’s note</h3><p class="note">${esc(s.note)}</p></div>
+        <div class="panel"><h3>Corrections applied</h3>${s.corrections.length ? `<ul class="plain">${s.corrections.map((c) => `<li>${esc(c.text)}</li>`).join("")}</ul>` : '<p class="muted">None: normal figure, base system as drafted.</p>'}</div>
+        <div class="panel"><h3>Ironwork</h3><ul class="plain">${s.ironwork.map((i) => `<li><b>${esc(i.where)}:</b> ${esc(i.text)}</li>`).join("")}</ul></div>
+        <div class="panel"><h3>Baste fitting: check</h3><ul class="plain">${s.fitting.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
+      </div>
+      <div class="panel"><h3>Cutting list</h3><div class="scroll"><table><thead><tr><th>Piece</th><th>Material</th><th>Count</th></tr></thead><tbody>
+        ${s.cutting.map((c) => `<tr><td>${esc(c.piece)}</td><td>${esc(c.material)}</td><td>${esc(c.count)}</td></tr>`).join("")}</tbody></table></div></div>
+      <details class="panel"><summary style="cursor:pointer"><h3 style="display:inline">Construction points (front and back)</h3></summary>
+        <div class="grid2" style="margin-top:12px">${["front", "back"].map((k) => `<div class="scroll"><table><thead><tr><th>Point</th><th>Rule</th><th class="num">x</th><th class="num">y</th></tr></thead><tbody>
+          ${s.points[k].map((p) => `<tr><td class="mono">${esc(p.id)}</td><td>${esc(p.rule)}</td><td class="num">${p.x}</td><td class="num">${p.y}</td></tr>`).join("")}</tbody></table></div>`).join("")}</div>
+      </details>`;
+  }
+
+  // ---------- Fitting ----------
+  function tabFitting(b) {
+    const v = curV(); const s = S.spec;
+    if (v.locked && v.fitting) {
+      const f = v.fitting;
+      b.innerHTML = `<div class="panel stack"><h3>Fitting on v${v.n} · ${esc((f.date || "").slice(0, 10))}</h3>
+        ${f.observations?.length ? `<ul class="plain">${f.observations.map((o) => `<li>${esc(o)}</li>`).join("")}</ul>` : ""}
+        ${f.notes ? `<p class="note">${esc(f.notes)}</p>` : ""}
+        <table><thead><tr><th>Change</th><th class="num">Delta</th><th>Reason</th></tr></thead><tbody>${(f.deltas || []).map((d) => `<tr><td>${esc(C.ADJ_PARAMS[d.param]?.label || d.param)}</td><td class="num">${d.value > 0 ? "+" : ""}${d.value} ${esc(C.ADJ_PARAMS[d.param]?.unit || "")}</td><td>${esc(d.reason || "")}</td></tr>`).join("")}</tbody></table>
+        <p class="muted">${S.versions.some((x) => x.n === f.next) ? `These changes went into v${f.next}.` : `These changes went into v${f.next}, which has since been deleted.`}</p>
+        ${S.versions.some((x) => x.n === f.next) ? `<button class="btn" data-v="${f.next}">Open v${f.next}</button>` : ""}</div>`;
+      return;
+    }
+    if (!s || s.status !== "ok") { b.innerHTML = `<div class="banner warn">Resolve the measures first; a fitting needs a complete draft to correct.</div>`; return; }
+    S.fitting = S.fitting || { faults: {}, text: "", notes: "", diag: [], guide: {} };
+    const F = S.fitting;
+    b.innerHTML = `
+      <div class="banner warn"><span>Recording a fitting on <b>v${v.n}</b> keeps it as cut and creates <b>v${nextN()}</b> with the corrections added. Nothing is redrafted from scratch.</span></div>
+      <div class="grid2">
+        <div class="panel stack" id="guide">${guideHTML()}</div>
+        <div class="panel stack"><h3>Findings at this fitting</h3><div id="diag" class="stack">${F.diag.length ? F.diag.map((d, i) => diagHTML(d, i)).join("") : '<p class="muted">Work through the guide for each fault you see, then add it here. Amounts are starting points: set them from what you pinned.</p>'}</div></div>
+      </div>
+      <div class="panel stack"><h3>Corrections for v${nextN()}</h3>
+        <div id="pending">${pendingHTML()}</div>
+        <div class="field"><label for="fitNotes">Fitting notes</label><textarea id="fitNotes" rows="2" placeholder="Anything else for the record">${esc(F.notes)}</textarea></div>
+        <div class="row"><button class="btn primary" data-act="saveFitting" ${allDeltas().length ? "" : "disabled"}>Record fitting and create new version</button></div>
+      </div>`;
+  }
+  const GUIDE = window.FittingGuide.GUIDE;
+  function guideResult() {
+    const g = S.fitting.guide; const area = GUIDE.find((a) => a.id === g.area); const sym = area && area.symptoms.find((x) => x.id === g.symptom);
+    if (!sym) return null;
+    if (sym.result) return { sym, res: sym.result, label: sym.label };
+    if (sym.ask && g.option != null) { const o = sym.ask.options[g.option]; return { sym, res: o.result, label: `${sym.label}: ${o.label.toLowerCase()}` }; }
+    return { sym, res: null };
+  }
+  function guideHTML() {
+    const g = S.fitting.guide; const area = GUIDE.find((a) => a.id === g.area);
+    const chip = (act, val, label, on) => `<button type="button" class="gchip" data-act="${act}" data-val="${val}" aria-pressed="${on}">${esc(label)}</button>`;
+    let h = `<h3>Fitting guide</h3><div class="gstep"><span class="gnum">1</span><div><b>Where is the fault?</b><div class="gchips">${GUIDE.map((a) => chip("gArea", a.id, a.label, a.id === g.area)).join("")}</div></div></div>`;
+    if (area) h += `<div class="gstep"><span class="gnum">2</span><div><b>What do you see?</b><div class="glist">${area.symptoms.map((x) => chip("gSym", x.id, x.label, x.id === g.symptom)).join("")}</div></div></div>`;
+    const r = guideResult();
+    if (r && r.sym.ask) h += `<div class="gstep"><span class="gnum">3</span><div><b>${esc(r.sym.ask.q)}</b><div class="glist">${r.sym.ask.options.map((o, i) => chip("gOpt", i, o.label, g.option === i)).join("")}</div></div></div>`;
+    if (r && r.res) {
+      const res = r.res;
+      h += `<div class="diag"><div><b>Cause:</b> ${esc(res.cause)}</div>${res.note ? `<div class="muted">${esc(res.note)}</div>` : ""}
+        ${res.deltas.length ? `<div class="deltas">${res.deltas.map((d, i) => `<label>${esc(C.ADJ_PARAMS[d.param].label)} <input type="number" step="any" id="gv_${i}" value="${g.vals ? g.vals[i] : d.value}" data-act="gVal" data-i="${i}"> ${esc(C.ADJ_PARAMS[d.param].unit)}</label>`).join("")}</div>
+        <div class="row"><button type="button" class="btn primary sm" data-act="gAdd">Add to findings</button></div>` : '<div class="muted">No draft correction for this one.</div>'}</div>`;
+    }
+    return h;
+  }
+  function diagHTML(d, i) {
+    return `<div class="diag"><div class="row" style="justify-content:space-between"><b>${esc(d.observation)}</b><button type="button" class="btn sm ghost" data-act="gRemove" data-i="${i}">Remove</button></div>
+      <div class="muted">${esc(d.cause)}</div>
+      <div class="deltas">${(d.deltas || []).map((x, j) => `<label>${esc(C.ADJ_PARAMS[x.param]?.label || x.param)} <input type="number" step="any" data-act="diagVal" data-i="${i}" data-j="${j}" value="${x.value}"> ${esc(C.ADJ_PARAMS[x.param]?.unit || "")}</label>`).join("")}</div></div>`;
+  }
+  function allDeltas() {
+    const F = S.fitting; if (!F) return [];
+    const out = [];
+    F.diag.forEach((d) => (d.deltas || []).forEach((x) => out.push({ param: x.param, value: Number(x.value) || 0, reason: d.observation })));
+    return out.filter((d) => d.value);
+  }
+  function pendingHTML() {
+    const D = allDeltas();
+    if (!D.length) return '<p class="muted">Add findings from the guide to build the corrections.</p>';
+    const cur = S.work.adjustments || {}; const tot = {};
+    D.forEach((d) => (tot[d.param] = (tot[d.param] || 0) + d.value));
+    return `<table><thead><tr><th>Change</th><th class="num">This fitting</th><th class="num">New total</th></tr></thead><tbody>${Object.entries(tot).map(([k, x]) => `<tr><td>${esc(C.ADJ_PARAMS[k]?.label || k)}</td><td class="num">${x > 0 ? "+" : ""}${r1(x)}</td><td class="num">${r1((cur[k] || 0) + x)} ${esc(C.ADJ_PARAMS[k]?.unit || "")}</td></tr>`).join("")}</tbody></table>`;
+  }
+  document.addEventListener("change", (e) => {
+    const t = e.target; const F = S.fitting; if (!F) return;
+    if (t.dataset.act === "diagVal") { F.diag[Number(t.dataset.i)].deltas[Number(t.dataset.j)].value = Number(t.value); refreshPending(); }
+    if (t.dataset.act === "gVal") { const r = guideResult(); F.guide.vals = F.guide.vals || r.res.deltas.map((d) => d.value); F.guide.vals[Number(t.dataset.i)] = Number(t.value); }
+  });
+  document.addEventListener("input", (e) => { if (!S.fitting) return; if (e.target.id === "fitNotes") S.fitting.notes = e.target.value; });
+  function refreshPending() { const p = $("#pending"); if (p) p.innerHTML = pendingHTML(); const btn = $('[data-act="saveFitting"]'); if (btn) btn.disabled = !allDeltas().length; }
+  function guideClick(a, t) {
+    const F = S.fitting; if (!F) return false; const g = F.guide;
+    if (a === "gArea") { F.guide = { area: t.dataset.val }; }
+    else if (a === "gSym") { F.guide = { area: g.area, symptom: t.dataset.val }; }
+    else if (a === "gOpt") { F.guide = { area: g.area, symptom: g.symptom, option: Number(t.dataset.val) }; }
+    else if (a === "gAdd") {
+      const r = guideResult(); if (!r || !r.res) return true;
+      const vals = r.res.deltas.map((d, i) => { const el = document.getElementById("gv_" + i); return el ? Number(el.value) : d.value; });
+      F.diag.push({ observation: r.label, cause: r.res.cause, deltas: r.res.deltas.map((d, i) => ({ param: d.param, value: vals[i] })) });
+      F.guide = {}; renderTab(); toast("Added to findings"); return true;
+    } else if (a === "gRemove") { F.diag.splice(Number(t.dataset.i), 1); renderTab(); return true; }
+    else return false;
+    const el = $("#guide"); if (el) el.innerHTML = guideHTML();
+    return true;
+  }
+
+  async function saveFitting() {
+    const v = curV(); const F = S.fitting; const D = allDeltas(); if (!D.length) return;
+    const newN = nextN();
+    const observations = F.diag.map((d) => d.observation);
+    const fitting = { date: new Date().toISOString(), observations, notes: F.notes || "", deltas: D, next: newN };
+    const adj = { ...(S.work.adjustments || {}) }; D.forEach((d) => (adj[d.param] = r1((adj[d.param] || 0) + d.value)));
+    const input = structuredClone(S.work); delete input._locked; input.adjustments = adj;
+    const inputBase = structuredClone(S.work); delete inputBase._locked;
+    await createVersion(newN, input, `after fitting ${observations.length ? "on v" + v.n : ""}`.trim(), v.n);
+    const lockPatch = { locked: true, fitting, house: structuredClone(S.house || {}), input: inputBase };
+    if (S.local) Object.assign(v, lockPatch);
+    else await write(`projects/${S.pid}/versions/${v.id}`, () => S.db.doc(`projects/${S.pid}/versions/${v.id}`).update(lockPatch));
+    S.fitting = null; toast(`Fitting recorded on v${v.n}. Now on v${newN}.`);
+    if (S.local) { S.versions = LS.versions[S.pid]; selectVersion(newN); }
+  }
+
+  async function createVersion(n, input, label, parent) {
+    const doc = { n, label: label || "", input, created: new Date().toISOString(), updated: new Date().toISOString(), parent: parent ?? null, locked: false, engine: C.ENGINE_VERSION };
+    const id = vid(n);
+    const pr = sel(); S.pendingSelect = n;
+    if (S.local) { (LS.versions[S.pid] = LS.versions[S.pid] || []).push({ id, ...doc }); S.versions = LS.versions[S.pid]; pr.latest = n; pr.maxN = Math.max(Number(pr.maxN) || 0, n); pr.updated = doc.created; renderRail(); return; }
+    await write(`projects/${S.pid}/versions/${id}`, () => S.db.doc(`projects/${S.pid}/versions/${id}`).set(doc));
+    await write(`projects/${S.pid}`, () => S.db.doc(`projects/${S.pid}`).update({ latest: n, maxN: Math.max(Number(pr.maxN) || 0, n), updated: doc.created }));
+  }
+
+  // ---------- Export ----------
+  function tabExport(b) {
+    const s = S.spec;
+    if (!s || s.status !== "ok") { b.innerHTML = `<div class="banner warn">Resolve the measures first; there is no pattern to print yet.</div>`; return; }
+    const m = meta();
+    const info = (k) => { try { return X.pdfInfo(s, m, k); } catch (e) { return { pages: "?", size: "" }; } };
+    const a4 = info("a4"), a0 = info("a0"), roll = info("roll");
+    const can = !!S.downloads;
+    b.innerHTML = `
+      ${can ? "" : '<div class="banner warn">Downloads aren’t available in this view. Open the page in Claude to save files.</div>'}
+      <div class="banner ok"><span>All files are 1:1 in millimetres. Print PDFs at <b>100% / actual size</b> and measure the 100 mm square before cutting.</span></div>
+      <div class="exp">
+        <div class="opt"><b>Tiled A4 PDF</b><span>${a4.pages} pages (${a4.size}), blank tiles skipped. Join on the grey border; half-diamonds meet at each joint.</span><button class="btn primary" data-act="pdf" data-f="a4" ${can ? "" : "disabled"}>Save A4 PDF</button></div>
+        <div class="opt"><b>A0 PDF</b><span>${a0.pages} sheets (${a0.size}) for a copy shop.</span><button class="btn" data-act="pdf" data-f="a0" ${can ? "" : "disabled"}>Save A0 PDF</button></div>
+        <div class="opt"><b>Plotter roll PDF</b><span>One page, ${esc(roll.size)}, for a 914 mm roll.</span><button class="btn" data-act="pdf" data-f="roll" ${can ? "" : "disabled"}>Save roll PDF</button></div>
+        <div class="opt"><b>SVG</b><span>Vector at true size (mm units) for CAD or a cutter.</span><button class="btn" data-act="svg" ${can ? "" : "disabled"}>Save SVG</button></div>
+        <div class="opt"><b>DXF (zipped)</b><span>R12 DXF in mm with layers CUT, NET, GRAIN, MARKS, TEXT.</span><button class="btn" data-act="dxf" ${can ? "" : "disabled"}>Save DXF</button></div>
+        <div class="opt"><b>Draft spec JSON</b><span>Every point, rule, check and correction for this version.</span><button class="btn" data-act="json" ${can ? "" : "disabled"}>Save JSON</button></div>
+      </div>`;
+  }
+  const fname = (ext) => { const p = sel(), v = curV(); return `${(p.name + (p.client ? "-" + p.client : "")).replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-")}-v${v.n}.${ext}`; };
+  async function save(filename, data) {
+    try { await S.downloads.save({ filename, data }); toast("Saved " + filename); }
+    catch (e) { if (e.code !== "declined") toast({ rate_limited: "A save is already waiting. Finish it first.", too_large: "File too large for this destination." }[e.code] || "Couldn’t save (" + e.code + ")."); }
+  }
+  async function doExport(kind, f) {
+    const s = S.spec, m = meta();
+    try {
+      if (kind === "pdf") { toast("Building PDF…", 1500); await new Promise((r) => setTimeout(r, 30)); const ab = X.toPDF(s, m, f, window.jspdf.jsPDF); await save(fname(f === "a4" ? "A4.pdf" : f === "a0" ? "A0.pdf" : "roll.pdf"), new Blob([ab], { type: "application/pdf" })); }
+      if (kind === "svg") await save(fname("svg"), X.toSVG(s, m));
+      if (kind === "dxf") { const z = new JSZip(); z.file(fname("dxf"), X.toDXF(s, m)); z.file("README.txt", `${m.project} ${m.version}\nUnits: millimetres. Layers: CUT (cut line), NET (stitch line), GRAIN, MARKS (notches, darts, pleats, pockets), TEXT.\nEngine ${C.ENGINE_VERSION}.`); await save(fname("zip"), await z.generateAsync({ type: "blob" })); }
+      if (kind === "json") { const out = structuredClone(s); out.input = structuredClone(S.work); delete out.input._locked; out.project = m; await save(fname("json"), JSON.stringify(out, null, 2)); }
+    } catch (e) { console.error(e); toast("Export failed: " + (e.message || e)); }
+  }
+
+  // ---------- Spec ----------
+  function tabSpec(b) {
+    const s = S.spec; const out = s ? { ...s, pieces: s.pieces ? s.pieces.map((p) => ({ id: p.id, name: p.name, material: p.material, count: p.count, net_points: p.net.length, cut_points: p.cut.length })) : undefined } : {};
+    b.innerHTML = `<div class="panel"><div class="toolbar"><h3 style="margin:0">Draft specification</h3><button class="btn sm" data-act="copySpec">Copy JSON</button></div><pre class="mono" id="specPre" style="overflow:auto; max-height:70vh; margin:0; font-size:12px">${esc(JSON.stringify(out, null, 2))}</pre></div>`;
+  }
+
+  // ---------- modals ----------
+  function modal(html, onSubmit) {
+    const root = $("#modalRoot");
+    root.innerHTML = `<div class="modal" role="dialog" aria-modal="true"><form class="panel" id="mdl">${html}</form></div>`;
+    const f = $("#mdl"); f.querySelector("input,select,textarea")?.focus();
+    f.addEventListener("submit", async (e) => { e.preventDefault(); const ok = await onSubmit(new FormData(f)); if (ok !== false) root.innerHTML = ""; });
+    f.addEventListener("click", (e) => { if (e.target.dataset.act === "cancel") root.innerHTML = ""; });
+    root.querySelector(".modal").addEventListener("keydown", (e) => { if (e.key === "Escape") root.innerHTML = ""; });
+  }
+  const folderOptions = () => [...new Set(S.projects.map((p) => p.folder).filter(Boolean))].map((f) => `<option value="${esc(f)}">`).join("");
+  function newProjectModal() {
+    modal(`<h3>New project</h3>
+      <div class="field"><label for="np_name">Project name</label><input id="np_name" name="name" required placeholder="Navy flannel, double pleat"></div>
+      <div class="field"><label for="np_client">Client</label><input id="np_client" name="client" placeholder="Client name or reference"></div>
+      <div class="field"><label for="np_folder">Folder</label><input id="np_folder" name="folder" list="folders" placeholder="e.g. Clients A–M, or a season"><datalist id="folders">${folderOptions()}</datalist></div>
+      <div class="field"><label for="np_copy">Start from</label><select id="np_copy" name="copy"><option value="">Blank measures</option>${S.projects.map((p) => `<option value="${esc(p.id)}">Latest version of ${esc(p.name)}</option>`).join("")}</select></div>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn primary">Create</button></div>`,
+      async (fd) => {
+        const name = String(fd.get("name")).trim(); if (!name) return false;
+        let input = blankInput();
+        const copy = fd.get("copy");
+        if (copy) {
+          try {
+            const vs = S.local ? LS.versions[copy] || [] : (await S.db.collection(`projects/${copy}/versions`).get()).docs.map((d) => d.data());
+            const last = vs.sort((a, b) => a.n - b.n).pop(); if (last) { input = structuredClone(last.input); input.adjustments = {}; input.confirmed = []; }
+          } catch (e) { toast("Couldn’t copy measures; starting blank."); }
+        }
+        const now = new Date().toISOString();
+        const doc = { name, client: String(fd.get("client") || "").trim(), folder: String(fd.get("folder") || "").trim(), notes: "", created: now, updated: now, latest: 1 };
+        let pid;
+        if (S.local) { pid = "p" + Date.now(); LS.projects.push({ id: pid, ...doc }); S.projects = LS.projects.slice(); renderRail(); }
+        else { const ref = S.db.collection("projects").doc(); pid = ref.id; await write(`projects/${pid}`, () => ref.set(doc)); }
+        if (S.local) { S.pid = null; openProject(pid); await createVersion(1, input, "first draft", null); selectVersion(1); }
+        else { const vref = S.db.doc(`projects/${pid}/versions/${vid(1)}`); await write(`projects/${pid}/versions/${vid(1)}`, () => vref.set({ n: 1, label: "first draft", input, created: now, updated: now, parent: null, locked: false, engine: C.ENGINE_VERSION })); openProject(pid); }
+        toast("Project created");
+      });
+  }
+  function editProjectModal() {
+    const p = sel();
+    modal(`<h3>Edit project</h3>
+      <div class="field"><label for="ep_name">Project name</label><input id="ep_name" name="name" required value="${esc(p.name)}"></div>
+      <div class="field"><label for="ep_client">Client</label><input id="ep_client" name="client" value="${esc(p.client || "")}"></div>
+      <div class="field"><label for="ep_folder">Folder</label><input id="ep_folder" name="folder" list="folders2" value="${esc(p.folder || "")}"><datalist id="folders2">${folderOptions()}</datalist></div>
+      <div class="field"><label for="ep_notes">Notes</label><input id="ep_notes" name="notes" value="${esc(p.notes || "")}"></div>
+      <div class="field"><label>Versions</label><div id="vlist" class="vlist">${versionListHTML()}</div></div>
+      <div class="field"><label for="ep_del">Delete project</label><input id="ep_del" name="del" placeholder="Type DELETE to remove this project and its versions"></div>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn primary">Save</button></div>`,
+      async (fd) => {
+        if (String(fd.get("del")).trim() === "DELETE") {
+          if (S.local) { LS.projects = LS.projects.filter((x) => x.id !== p.id); S.projects = LS.projects.slice(); }
+          else { for (const v of S.versions) await write(`projects/${p.id}/versions/${v.id}`, () => S.db.doc(`projects/${p.id}/versions/${v.id}`).delete()); await write(`projects/${p.id}`, () => S.db.doc(`projects/${p.id}`).delete()); }
+          if (S.unsubV) S.unsubV(); S.pid = null; S.versions = []; renderRail(); renderMain(); toast("Project deleted"); return;
+        }
+        const patch = { name: String(fd.get("name")).trim() || p.name, client: String(fd.get("client") || "").trim(), folder: String(fd.get("folder") || "").trim(), notes: String(fd.get("notes") || "").trim(), updated: new Date().toISOString() };
+        if (S.local) { Object.assign(p, patch); renderRail(); renderHead(); } else await write(`projects/${p.id}`, () => S.db.doc(`projects/${p.id}`).update(patch));
+      });
+  }
+  function versionListHTML(armed) {
+    if (!S.versions.length) return '<p class="muted" style="margin:0">No versions.</p>';
+    const only = S.versions.length === 1;
+    return `<table><tbody>${S.versions.map((v) => {
+      const notes = [v.label, v.locked ? "fitted" : "", v.n === S.vnum ? "open now" : ""].filter(Boolean).join(" · ");
+      const from = S.versions.filter((x) => x.parent === v.n).map((x) => "v" + x.n);
+      const btn = only ? '<span class="muted" style="font-size:12px">Last version</span>'
+        : armed === v.n ? `<span class="row"><button type="button" class="btn sm danger" data-act="delVersionGo" data-n="${v.n}">Delete v${v.n}</button><button type="button" class="btn sm ghost" data-act="delVersionNo">Keep</button></span>`
+        : `<button type="button" class="btn sm ghost" data-act="delVersion" data-n="${v.n}">Delete</button>`;
+      return `<tr><td class="mono">v${v.n}</td><td>${esc(notes)}${armed === v.n && (v.locked || from.length) ? `<div class="muted" style="font-size:12px">${v.locked ? "Its fitting record goes with it. " : ""}${from.length ? from.join(", ") + " keep their own measures and adjustments." : ""}</div>` : ""}</td><td style="text-align:right">${btn}</td></tr>`;
+    }).join("")}</tbody></table>`;
+  }
+  async function deleteVersion(n) {
+    const v = S.versions.find((x) => x.n === n); if (!v || S.versions.length < 2) return;
+    const p = sel(); const rest = S.versions.filter((x) => x.n !== n); const latest = rest[rest.length - 1].n;
+    const patch = { latest, maxN: Math.max(Number(p.maxN) || 0, ...S.versions.map((x) => x.n)), updated: new Date().toISOString() };
+    if (S.local) { LS.versions[S.pid] = rest; S.versions = rest; Object.assign(p, patch); }
+    else {
+      await write(`projects/${S.pid}/versions/${v.id}`, () => S.db.doc(`projects/${S.pid}/versions/${v.id}`).delete());
+      await write(`projects/${S.pid}`, () => S.db.doc(`projects/${S.pid}`).update(patch));
+      S.versions = rest;
+    }
+    if (S.vnum === n) selectVersion(latest); else renderHead();
+    renderRail();
+    const vl = $("#vlist"); if (vl) vl.innerHTML = versionListHTML();
+    toast(`Deleted v${n}`);
+  }
+  const HOUSE_FIELDS = [
+    ["seatEase.flat", "Seat ease, flat front"], ["seatEase.single_forward_pleat", "Seat ease, single pleat"], ["seatEase.double_forward_pleat", "Seat ease, double pleat"], ["seatEase.reverse_pleat", "Seat ease, reverse pleat"],
+    ["waistEase", "Waist ease"], ["waistEaseBraces", "Waist ease with braces"], ["frontForkDiv", "Front fork = seat ÷"], ["backForkDiv", "Back fork = seat ÷"],
+    ["seatAngleDeg", "Seat angle (°)"], ["seatLineFrac", "Seat line above fork (× rise)"], ["backRaise", "Back waist raise"], ["fishtailRise", "Fishtail rise"], ["cfInset", "CF waist inset"],
+    ["backInsideLegShorten", "Back inside leg ironwork"], ["backHemDrop.slight", "Back hem drop, slight break"], ["backHemDrop.full", "Back hem drop, full break"], ["backHemDrop.none", "Back hem drop, no break"],
+    ["sideSuppressMax", "Max side seam suppression"], ["dartMax", "Max back dart"], ["crotchEase", "Crotch ease"],
+    ["kneeOverBottom.slim", "Knee over bottom, slim"], ["kneeOverBottom.classic", "Knee over bottom, classic"], ["kneeOverBottom.full", "Knee over bottom, full"],
+    ["inlay.backSeamWaist", "Inlay, back seam at waist"], ["inlay.side", "Inlay, side seams"], ["inlay.inside", "Inlay, inside leg"], ["inlay.hemPlain", "Hem, plain"], ["inlay.hemTurnupExtra", "Hem, turn-up extra"], ["inlay.other", "Seam allowance, other"],
+  ];
+  const getPath = (o, p) => p.split(".").reduce((a, k) => (a == null ? undefined : a[k]), o);
+  function houseModal() {
+    const eff = C.deepMerge(C.DEFAULTS, S.house || {});
+    modal(`<h3>House calibration</h3><p class="muted" style="margin:0">Values in mm unless marked. They apply to every unfitted version; fitted versions keep the values they were cut with.</p>
+      <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap:8px 12px; max-height:55vh; overflow:auto">${HOUSE_FIELDS.map(([k, l]) => `<div class="field"><label for="h_${k}">${l}</label><input id="h_${k}" name="${k}" type="number" step="any" value="${getPath(eff, k)}" placeholder="${getPath(C.DEFAULTS, k)}"></div>`).join("")}</div>
+      <div class="row" style="justify-content:space-between"><button type="button" class="btn ghost" data-act="resetHouse">Reset to defaults</button><span class="row"><button type="button" class="btn ghost" data-act="cancel">Cancel</button><button class="btn primary">Save</button></span></div>`,
+      async (fd) => {
+        const values = {};
+        HOUSE_FIELDS.forEach(([k]) => { const v = fd.get(k); if (v === "" || v == null) return; const n = Number(v); if (!Number.isFinite(n) || n === getPath(C.DEFAULTS, k)) return; const ks = k.split("."); let o = values; ks.slice(0, -1).forEach((x) => (o = o[x] = o[x] || {})); o[ks[ks.length - 1]] = n; });
+        S.house = values; recompute(); if (S.pid) renderTab();
+        if (!S.local) await write("settings/house", () => S.db.doc("settings/house").set({ values, updated: new Date().toISOString() }));
+        toast("House calibration saved");
+      });
+  }
+
+  // ---------- global clicks ----------
+  document.addEventListener("click", async (e) => {
+    const t = e.target.closest("[data-act],[data-tab],[data-v]"); if (!t) return;
+    if (t.dataset.tab && !t.dataset.act) { S.tab = t.dataset.tab; renderTab(); return; }
+    if (t.dataset.v && !t.dataset.act) { selectVersion(Number(t.dataset.v)); return; }
+    const a = t.dataset.act;
+    if (a === "new") newProjectModal();
+    if (a === "editProject") editProjectModal();
+    if (a === "firstVersion") { await createVersion(1, blankInput(), "first draft", null); }
+    if (a === "dup") { const v = curV(); const n = nextN(); const input = structuredClone(v.input); await createVersion(n, input, `from v${v.n}`, v.n); if (S.local) { S.pendingSelect = null; selectVersion(n); } toast(`Created v${n} from v${v.n}`); }
+    if (a === "clearAdj") { delete S.work.adjustments[t.dataset.k]; recompute(); saveWork(); renderTab(); }
+    if (a === "delVersion") { const vl = $("#vlist"); if (vl) vl.innerHTML = versionListHTML(Number(t.dataset.n)); return; }
+    if (a === "delVersionNo") { const vl = $("#vlist"); if (vl) vl.innerHTML = versionListHTML(); return; }
+    if (a === "delVersionGo") { t.disabled = true; await deleteVersion(Number(t.dataset.n)); return; }
+    if (a === "zoom") { S.zoom = !S.zoom; renderTab(); }
+    if (a && a.startsWith("g") && guideClick(a, t)) return;
+    if (a === "saveFitting") { t.disabled = true; await saveFitting(); }
+    if (["pdf", "svg", "dxf", "json"].includes(a)) doExport(a, t.dataset.f);
+    if (a === "copySpec") { const txt = $("#specPre").textContent; try { await navigator.clipboard.writeText(txt); toast("Copied"); } catch { const r = document.createRange(); r.selectNodeContents($("#specPre")); getSelection().removeAllRanges(); getSelection().addRange(r); toast("Selected. Copy with your keyboard."); } }
+    if (a === "resetHouse") { $("#modalRoot").innerHTML = ""; S.house = {}; recompute(); if (S.pid) renderTab(); if (!S.local) await write("settings/house", () => S.db.doc("settings/house").set({ values: {}, updated: new Date().toISOString() })); toast("House calibration reset"); }
+  });
+  $("#newProject").addEventListener("click", newProjectModal);
+  $("#houseBtn").addEventListener("click", houseModal);
+
+  boot();
+})();
+</script>

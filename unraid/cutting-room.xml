@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>cutting-room</Name>
+  <Repository>ghcr.io/tidyninja17/cutting-room:latest</Repository>
+  <Registry>https://github.com/tidyninja17/cutting-room/pkgs/container/cutting-room</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/tidyninja17/cutting-room</Support>
+  <Project>https://github.com/tidyninja17/cutting-room</Project>
+  <Overview>Bespoke trouser drafting: measures and figuration in, 1:1 print-ready patterns out, with versioned fitting rounds. Runs offline.</Overview>
+  <Category>Productivity:</Category>
+  <WebUI>http://[IP]:[PORT:8080]/</WebUI>
+  <Icon>https://raw.githubusercontent.com/tidyninja17/cutting-room/main/src/icon.svg</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <Config Name="Web UI port" Target="8080" Default="8080" Mode="tcp" Description="Port for the app" Type="Port" Display="always" Required="true" Mask="false">8080</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/cutting-room" Mode="rw" Description="Database, daily backups and one-off import.json" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/cutting-room</Config>
+  <Config Name="Basic auth" Target="BASIC_AUTH" Default="" Mode="" Description="Optional user:password. Leave empty on a trusted LAN or Tailscale." Type="Variable" Display="always" Required="false" Mask="true"></Config>
+  <Config Name="Time zone" Target="TZ" Default="Europe/London" Mode="" Description="" Type="Variable" Display="advanced" Required="false" Mask="false">Europe/London</Config>
+  <Config Name="Backups kept" Target="BACKUP_KEEP" Default="14" Mode="" Description="Daily database backups to keep" Type="Variable" Display="advanced" Required="false" Mask="false">14</Config>
+</Container>
